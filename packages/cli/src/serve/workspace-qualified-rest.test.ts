@@ -1205,6 +1205,37 @@ describe('workspace-qualified core REST', () => {
         restarted: true,
       });
 
+      const authenticate = await request(h.app)
+        .post(
+          `/workspaces/${encodeURIComponent(h.secondaryId)}/runtime/mcp/docs/authenticate`,
+        )
+        .set('Authorization', 'Bearer secret')
+        .set('Host', host())
+        .send({
+          redirectUri:
+            'https://console.example.com/agent/runtime-mcp/oauth/callback',
+        });
+      expect(authenticate.status).toBe(200);
+      expect(h.secondaryBridge.manageMcpServer).toHaveBeenCalledWith(
+        'docs',
+        'authenticate',
+        undefined,
+        {
+          redirectUri:
+            'https://console.example.com/agent/runtime-mcp/oauth/callback',
+        },
+      );
+
+      const unsafeRedirect = await request(h.app)
+        .post(
+          `/workspaces/${encodeURIComponent(h.secondaryId)}/runtime/mcp/docs/authenticate`,
+        )
+        .set('Authorization', 'Bearer secret')
+        .set('Host', host())
+        .send({ redirectUri: 'http://localhost:7777/oauth/callback' });
+      expect(unsafeRedirect.status).toBe(400);
+      expect(unsafeRedirect.body.code).toBe('invalid_oauth_redirect_uri');
+
       const dottedRestart = await request(h.app)
         .post(
           `/workspaces/${encodeURIComponent(h.secondaryId)}/runtime/mcp/foo-bar.io/restart`,

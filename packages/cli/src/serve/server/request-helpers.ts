@@ -10,6 +10,7 @@ import {
 } from '@qwen-code/acp-bridge/workspacePaths';
 import type { Request, Response } from 'express';
 import type { AcpSessionBridge } from '@qwen-code/acp-bridge/bridgeTypes';
+import { isValidRemoteMcpOAuthRedirectUri } from '@qwen-code/qwen-code-core';
 import { normalizeSessionIdForLookup } from '../../config/session-id.js';
 import { writeStderrLine } from '../../utils/stdioHelpers.js';
 import type { WorkspaceRequestContext } from '../workspace-service/index.js';
@@ -68,6 +69,23 @@ const PROTOTYPE_POLLUTION_KEYS: ReadonlySet<string> = new Set([
 
 export const CLIENT_ID_HEADER = 'x-qwen-client-id';
 export const MAX_CLIENT_ID_LENGTH = 128;
+
+export function parseRemoteMcpOAuthRedirectUri(
+  body: Record<string, unknown>,
+  res: Response,
+): string | undefined | null {
+  const redirectUri = body['redirectUri'];
+  if (redirectUri === undefined) return undefined;
+  if (!isValidRemoteMcpOAuthRedirectUri(redirectUri)) {
+    res.status(400).json({
+      error:
+        '`redirectUri` must be an HTTPS URL without callback response parameters',
+      code: 'invalid_oauth_redirect_uri',
+    });
+    return null;
+  }
+  return redirectUri;
+}
 export const MAX_TOOL_NAME_LENGTH = 256;
 export const MAX_SKILL_NAME_LENGTH = 256;
 export const MAX_SERVER_NAME_LENGTH = 256;

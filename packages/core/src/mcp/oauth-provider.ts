@@ -147,6 +147,40 @@ interface PKCEParams {
 }
 
 const HTTP_OK = 200;
+const REMOTE_REDIRECT_URI_MAX_LENGTH = 2048;
+const CALLBACK_RESPONSE_QUERY_KEYS = [
+  'code',
+  'state',
+  'error',
+  'error_description',
+] as const;
+
+/** Validate a browser callback supplied to the authenticated daemon API. */
+export function isValidRemoteMcpOAuthRedirectUri(
+  value: unknown,
+): value is string {
+  if (
+    typeof value !== 'string' ||
+    value.length === 0 ||
+    value.length > REMOTE_REDIRECT_URI_MAX_LENGTH ||
+    value !== value.trim()
+  ) {
+    return false;
+  }
+  try {
+    const parsed = new URL(value);
+    return (
+      parsed.protocol === 'https:' &&
+      parsed.hostname.length > 0 &&
+      parsed.username === '' &&
+      parsed.password === '' &&
+      parsed.hash === '' &&
+      CALLBACK_RESPONSE_QUERY_KEYS.every((key) => !parsed.searchParams.has(key))
+    );
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Provider for handling OAuth authentication for MCP servers.

@@ -290,6 +290,7 @@ import {
 } from './routes/workspace-mcp-control.js';
 import { registerWorkspaceMcpConfigRoutes } from './routes/workspace-mcp-config.js';
 import { registerWorkspaceRuntimeMcpRoutes } from './routes/workspace-runtime-mcp.js';
+import { registerMcpOAuthCallbackRoutes } from './routes/mcp-oauth-callback.js';
 import { registerWorkspaceChannelControlRoutes } from './routes/workspace-channel-control.js';
 import { registerWorkspaceChannelManagementRoutes } from './routes/workspace-channel-management.js';
 import { registerWorkspaceChannelObservedContactRoutes } from './routes/workspace-channel-observed-contacts.js';
@@ -2939,6 +2940,7 @@ export function createServeApp(
     safeBody,
     sendBridgeError,
   });
+  registerMcpOAuthCallbackRoutes(app, { mutate, safeBody });
   const channelWorkerControl =
     deps.getChannelWorkerControl ??
     (deps.getChannelWorkerSnapshot

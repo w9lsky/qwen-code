@@ -2269,6 +2269,7 @@ export interface AcpSessionBridge extends WorkspaceEventBridge {
     serverName: string,
     action: 'approve' | 'enable' | 'disable' | 'authenticate' | 'clear-auth',
     originatorClientId: string | undefined,
+    options?: { redirectUri?: string },
   ): Promise<{
     serverName: string;
     action: 'approve' | 'enable' | 'disable' | 'authenticate' | 'clear-auth';

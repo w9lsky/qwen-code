@@ -10,6 +10,7 @@ import type { SendBridgeError } from '../server/error-response.js';
 import {
   createBuildWorkspaceCtx,
   MAX_SERVER_NAME_LENGTH,
+  parseRemoteMcpOAuthRedirectUri,
   parseAndValidateWorkspaceClientId,
   validateMcpRuntimeServerName,
 } from '../server/request-helpers.js';
@@ -258,12 +259,18 @@ export function registerWorkspaceMcpControlRoutes(
         }
         const clientId = parseAndValidateClientId(req, res);
         if (clientId === null) return;
+        const redirectUri =
+          bridgeAction === 'authenticate'
+            ? parseRemoteMcpOAuthRedirectUri(safeBody(req), res)
+            : undefined;
+        if (redirectUri === null) return;
         try {
           assertGenerationOpen();
           const result = await bridge.manageMcpServer(
             serverName,
             bridgeAction,
             clientId,
+            redirectUri ? { redirectUri } : undefined,
           );
           assertGenerationOpen();
           res.status(200).json(result);
@@ -532,6 +539,11 @@ export function registerWorkspaceQualifiedMcpControlRoutes(
           runtime.bridge,
         );
         if (clientId === null) return;
+        const redirectUri =
+          bridgeAction === 'authenticate'
+            ? parseRemoteMcpOAuthRedirectUri(deps.safeBody(req), res)
+            : undefined;
+        if (redirectUri === null) return;
         const route = `POST /workspaces/:workspace/mcp/:server/${routeAction}`;
         try {
           runtime.generationGuard?.assertOpen();
@@ -539,6 +551,7 @@ export function registerWorkspaceQualifiedMcpControlRoutes(
             serverName,
             bridgeAction,
             clientId,
+            redirectUri ? { redirectUri } : undefined,
           );
           runtime.generationGuard?.assertOpen();
           res.status(200).json(result);

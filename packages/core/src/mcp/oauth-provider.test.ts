@@ -47,7 +47,10 @@ import type {
   OAuthTokenResponse,
   OAuthClientRegistrationResponse,
 } from './oauth-provider.js';
-import { MCPOAuthProvider } from './oauth-provider.js';
+import {
+  isValidRemoteMcpOAuthRedirectUri,
+  MCPOAuthProvider,
+} from './oauth-provider.js';
 import type { OAuthToken } from './token-storage/types.js';
 import { MCPOAuthTokenStorage } from './oauth-token-storage.js';
 import type {
@@ -58,6 +61,39 @@ import type {
 // Mock fetch globally
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
+
+describe('remote MCP OAuth redirect URI validation', () => {
+  it('accepts HTTPS callback pages and rejects unsafe or pre-populated callbacks', () => {
+    expect(
+      isValidRemoteMcpOAuthRedirectUri(
+        'https://console.example.com/agent/runtime-mcp/oauth/callback?preview=1',
+      ),
+    ).toBe(true);
+    expect(
+      isValidRemoteMcpOAuthRedirectUri('http://localhost:7777/oauth/callback'),
+    ).toBe(false);
+    expect(
+      isValidRemoteMcpOAuthRedirectUri(
+        'https://user:secret@console.example.com/oauth/callback',
+      ),
+    ).toBe(false);
+    expect(
+      isValidRemoteMcpOAuthRedirectUri(
+        'https://console.example.com/oauth/callback?state=forged',
+      ),
+    ).toBe(false);
+    expect(
+      isValidRemoteMcpOAuthRedirectUri(
+        'https://console.example.com/oauth/callback#fragment',
+      ),
+    ).toBe(false);
+    expect(
+      isValidRemoteMcpOAuthRedirectUri(
+        ' https://console.example.com/oauth/callback',
+      ),
+    ).toBe(false);
+  });
+});
 
 // Helper function to create mock fetch responses with proper headers
 const createMockResponse = (options: {

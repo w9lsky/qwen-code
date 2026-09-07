@@ -9,6 +9,7 @@ import type { SendBridgeError } from '../server/error-response.js';
 import {
   createBuildWorkspaceCtx,
   MAX_SERVER_NAME_LENGTH,
+  parseRemoteMcpOAuthRedirectUri,
 } from '../server/request-helpers.js';
 import {
   requireTrustedWorkspaceRuntime,
@@ -239,10 +240,20 @@ function registerFor(
         if (!coordinator) return;
         const serverName = req.params['server'];
         if (!validateRuntimeServerName(serverName, res)) return;
+        const redirectUri =
+          action === 'authenticate'
+            ? parseRemoteMcpOAuthRedirectUri(deps.safeBody(req), res)
+            : undefined;
+        if (redirectUri === null) return;
         const route = `POST ${base}/runtime/mcp/:server/${action}`;
         try {
           const result = await coordinator.runMcpRuntimeMutation(() =>
-            runtime.bridge.manageMcpServer(serverName, action, undefined),
+            runtime.bridge.manageMcpServer(
+              serverName,
+              action,
+              undefined,
+              redirectUri ? { redirectUri } : undefined,
+            ),
           );
           runtime.generationGuard?.assertOpen();
           res.status(200).json(result);

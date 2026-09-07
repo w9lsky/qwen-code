@@ -529,10 +529,12 @@ export * from './lsp/types.js';
 // ============================================================================
 
 export {
+  isValidRemoteMcpOAuthRedirectUri,
   MCPOAuthProvider,
   OAUTH_AUTH_URL_EVENT,
   OAUTH_DISPLAY_MESSAGE_EVENT,
 } from './mcp/oauth-provider.js';
+export { OAUTH_REDIRECT_PATH, OAUTH_REDIRECT_PORT } from './mcp/constants.js';
 export type {
   MCPOAuthConfig,
   OAuthDisplayMessage,

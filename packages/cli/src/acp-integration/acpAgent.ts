@@ -64,6 +64,7 @@ import {
   McpServerSpawnFailedError,
   InvalidMcpConfigError,
   isGatedMcpScope,
+  isValidRemoteMcpOAuthRedirectUri,
   MCPOAuthProvider,
   MCPOAuthTokenStorage,
   InvalidSessionTranscriptCursorError,
@@ -9581,6 +9582,7 @@ class QwenAgent implements Agent {
       case SERVE_CONTROL_EXT_METHODS.workspaceMcpManage: {
         const serverName = params['serverName'];
         const action = params['action'];
+        const redirectUri = params['redirectUri'];
         if (typeof serverName !== 'string' || serverName.length === 0) {
           throw RequestError.invalidParams(
             undefined,
@@ -9597,6 +9599,16 @@ class QwenAgent implements Agent {
           throw RequestError.invalidParams(
             undefined,
             'Invalid or missing MCP manage action',
+          );
+        }
+        if (
+          redirectUri !== undefined &&
+          (action !== 'authenticate' ||
+            !isValidRemoteMcpOAuthRedirectUri(redirectUri))
+        ) {
+          throw RequestError.invalidParams(
+            undefined,
+            'redirectUri must be an HTTPS URL without callback response parameters',
           );
         }
         const config = this.getWorkspaceMcpConfig(serverName);
@@ -9795,7 +9807,10 @@ class QwenAgent implements Agent {
           void (async () => {
             try {
               try {
-                const oauthConfig = server.oauth ?? { enabled: false };
+                const oauthConfig = {
+                  ...(server.oauth ?? { enabled: false }),
+                  ...(typeof redirectUri === 'string' ? { redirectUri } : {}),
+                };
                 const mcpServerUrl = server.httpUrl || server.url;
                 const authProvider = new MCPOAuthProvider(
                   new MCPOAuthTokenStorage(),

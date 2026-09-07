@@ -13700,7 +13700,7 @@ export function createAcpSessionBridge(opts: BridgeOptions): AcpSessionBridge {
       return rewindResult;
     },
 
-    async manageMcpServer(serverName, action, originatorClientId) {
+    async manageMcpServer(serverName, action, originatorClientId, options) {
       let releaseAuthentication =
         action === 'authenticate'
           ? opts.acquireMcpAuthentication?.(boundWorkspace, serverName)
@@ -13744,7 +13744,14 @@ export function createAcpSessionBridge(opts: BridgeOptions): AcpSessionBridge {
               withTimeout(
                 info.connection.extMethod(
                   SERVE_CONTROL_EXT_METHODS.workspaceMcpManage,
-                  { serverName, action, originatorClientId },
+                  {
+                    serverName,
+                    action,
+                    originatorClientId,
+                    ...(options?.redirectUri
+                      ? { redirectUri: options.redirectUri }
+                      : {}),
+                  },
                 ),
                 timeout,
                 SERVE_CONTROL_EXT_METHODS.workspaceMcpManage,
