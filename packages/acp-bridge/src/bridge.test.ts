@@ -1788,6 +1788,58 @@ describe('createAcpSessionBridge', () => {
     await second.shutdown();
   });
 
+  it('resumes the same pending MCP authentication without acquiring a second global lease', async () => {
+    let authenticationActive = false;
+    const acquireMcpAuthentication = vi.fn(() => {
+      if (authenticationActive) return undefined;
+      authenticationActive = true;
+      return () => {
+        authenticationActive = false;
+      };
+    });
+    const handle = makeChannel({
+      extMethodImpl: async (method) => {
+        if (method === SERVE_CONTROL_EXT_METHODS.workspaceMcpManage) {
+          return {
+            serverName: 'aone',
+            action: 'authenticate',
+            ok: true,
+            pending: true,
+            authUrl: 'https://example.com/oauth',
+          };
+        }
+        if (method === SERVE_STATUS_EXT_METHODS.workspaceMcp) {
+          return {
+            discoveryState: 'completed',
+            servers: [{ name: 'aone', authenticationState: 'pending' }],
+          };
+        }
+        return {};
+      },
+    });
+    const bridge = makeBridge({
+      channelFactory: async () => handle.channel,
+      acquireMcpAuthentication,
+    });
+
+    await expect(
+      bridge.manageMcpServer('aone', 'authenticate', undefined),
+    ).resolves.toMatchObject({ pending: true });
+    await expect(
+      bridge.manageMcpServer('aone', 'authenticate', undefined),
+    ).resolves.toMatchObject({
+      pending: true,
+      authUrl: 'https://example.com/oauth',
+    });
+    expect(acquireMcpAuthentication).toHaveBeenCalledTimes(1);
+    await expect(
+      bridge.manageMcpServer('yuque', 'authenticate', undefined),
+    ).rejects.toBeInstanceOf(McpAuthenticationInProgressError);
+    expect(acquireMcpAuthentication).toHaveBeenCalledTimes(2);
+
+    await bridge.shutdown();
+  });
+
   it('keeps MCP authentication admission after a timed-out RPC until its channel exits', async () => {
     vi.useFakeTimers();
     try {

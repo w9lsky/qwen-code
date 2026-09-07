@@ -13701,13 +13701,25 @@ export function createAcpSessionBridge(opts: BridgeOptions): AcpSessionBridge {
     },
 
     async manageMcpServer(serverName, action, originatorClientId, options) {
+      const currentInfo =
+        action === 'authenticate' ? liveChannelInfo() : undefined;
+      // Reopening the same server's OAuth action is a resume, not a competing
+      // process-wide callback listener. Let the child return the already-issued
+      // auth URL so a closed/blocked browser tab can be opened again. Other
+      // servers and other workspace bridges remain serialized by admission.
+      const resumesPendingAuthentication =
+        action === 'authenticate' &&
+        currentInfo?.workspaceMcpAuthenticationServerNames.has(serverName) ===
+          true;
       let releaseAuthentication =
-        action === 'authenticate'
+        action === 'authenticate' && !resumesPendingAuthentication
           ? opts.acquireMcpAuthentication?.(boundWorkspace, serverName)
           : undefined;
+      const acquiredAuthentication = releaseAuthentication !== undefined;
       if (
         action === 'authenticate' &&
         opts.acquireMcpAuthentication &&
+        !resumesPendingAuthentication &&
         !releaseAuthentication
       ) {
         throw new McpAuthenticationInProgressError();
@@ -13761,6 +13773,7 @@ export function createAcpSessionBridge(opts: BridgeOptions): AcpSessionBridge {
           } catch (error) {
             if (
               action === 'authenticate' &&
+              acquiredAuthentication &&
               !(error instanceof BridgeTimeoutError) &&
               !(error instanceof BridgeChannelClosedError)
             ) {
